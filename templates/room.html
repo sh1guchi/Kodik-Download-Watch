@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Совместный просмотр — серия {{ seria }}{% endblock %}
+{% block crumb %}<span class="crumb">Совместный просмотр</span>{% endblock %}
+
+{% block content %}
+  <h1 id="header">Серия {{ seria }} <span class="muted">/ {{ series }}</span></h1>
+  <p class="muted small">Плеер синхронизируется между всеми в комнате: пауза/воспроизведение/перемотка видны каждому.
+    (<a href="https://kodikdb.com/find-player?{{ id_type }}ID={{ id }}&only_season=false" target="_blank" rel="noopener">Открыть в Kodik ↗</a>)</p>
+
+  <div class="player-shell mt-1">
+    <video controls autoplay id="vid">
+      <source src="{{ straight_url }}#t={{ start_time }}" type="video/mp4">
+    </video>
+  </div>
+
+  <div class="player-bar">
+    {% if seria > 1 %}
+      <a class="btn" href="cs-{{ seria-1 }}/">← Предыдущая</a>
+    {% endif %}
+    {% if seria < series %}
+      <a class="btn btn-primary" href="cs-{{ seria+1 }}/">Следующая →</a>
+    {% endif %}
+    <div class="pb-spacer"></div>
+    <button id="skip_left" class="btn" onclick="skip_left();">−1:20</button>
+    <button id="skip_right" class="btn" onclick="skip_right();">+1:20</button>
+  </div>
+
+  <div class="player-bar">
+    <span class="chip" id="current_quality">Качество: <b>{{ quality }}p</b></span>
+    <span class="q-links">
+      <a href="cq-720/">720</a><a href="cq-480/">480</a><a href="cq-360/">360</a>
+    </span>
+    <div class="pb-spacer"></div>
+    {% if seria > 0 %}
+      <form method="POST" novalidate style="display:flex;gap:8px;align-items:center;">
+        <input class="input mono" name="seria" placeholder="№ (1–{{ series }})" required autocomplete="off"
+               inputmode="numeric" style="width:110px;padding:8px 10px;">
+        <button type="submit" class="btn">Перейти</button>
+      </form>
+    {% endif %}
+  </div>
+
+  <div class="player-bar">
+    <button class="copy_link btn btn-primary">Скопировать ссылку на комнату</button>
+    <button class="create_qr btn">Показать QR</button>
+  </div>
+  <div class="qr-box" id="qr_code_container"><div id="qr_code"></div></div>
+
+  <p class="muted small mt-2">Если плеер не загрузился — смените качество. Чтобы синхронизироваться с остальными, поставьте видео на паузу и снимите с неё.</p>
+{% endblock %}
+
+{% block scripts %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+  <script src="{{ url_for('static', filename='js/room_funcs.js') }}"></script>
+{% endblock %}

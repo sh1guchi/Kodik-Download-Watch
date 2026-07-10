@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}KDW — Поиск{% endblock %}
+{% block wrap_class %}wrap-narrow{% endblock %}
+
+{% block content %}
+  <div class="text-center" style="margin: 5vh 0 34px;">
+    <h1 style="font-size: 32px;">Найти аниме</h1>
+    <p class="muted mt-1">
+      {% if is_kodik_search %}Поиск по базе Kodik{% else %}Поиск по Шикимори{% endif %}
+      — скачивание, просмотр и пакетная загрузка серий
+    </p>
+  </div>
+
+  <form method="POST" novalidate>
+    <div class="search-row">
+      <input class="input" name="kdk" placeholder="Название тайтла…" required autocomplete="off" autofocus>
+      <button type="submit" class="btn btn-primary btn-lg">Найти</button>
+    </div>
+  </form>
+
+  <div class="section-title">Поиск по ID <a href="/help/" class="small" style="text-transform:none;letter-spacing:0;font-weight:600;">(помощь)</a></div>
+
+  <div class="card card-pad">
+    <form method="POST" novalidate class="mb-2">
+      <div class="field">
+        <label>ID <a href="https://shikimori.one" target="_blank" rel="noopener">Шикимори</a></label>
+        <div class="search-row">
+          <input class="input" name="shikimori_id" placeholder="Например: 52991" required autocomplete="off">
+          <button type="submit" class="btn">Открыть</button>
+        </div>
+      </div>
+    </form>
+    <form method="POST" novalidate>
+      <div class="field">
+        <label>ID <a href="https://www.kinopoisk.ru/" target="_blank" rel="noopener">Кинопоиска</a></label>
+        <div class="search-row">
+          <input class="input" name="kinopoisk_id" placeholder="Например: 464963" required autocomplete="off">
+          <button type="submit" class="btn">Открыть</button>
+        </div>
+      </div>
+    </form>
+  </div>
+{% endblock %}

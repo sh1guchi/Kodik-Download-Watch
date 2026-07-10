@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Результаты поиска{% endblock %}
+{% block crumb %}<span class="crumb">Поиск</span>{% endblock %}
+
+{% block content %}
+  <form method="POST" novalidate action="/">
+    <div class="search-row">
+      <input class="input" name="kdk" placeholder="Название тайтла…" required autocomplete="off">
+      <button type="submit" class="btn btn-primary">Найти</button>
+    </div>
+  </form>
+
+  <div class="section-title">Аниме</div>
+  {% if items %}
+    <div class="results-grid">
+      {% for item in items %}
+        <a class="result-card" href="/download/sh/{{ item.id }}/">
+          <img src="{{ item.image }}" alt="" loading="lazy">
+          <div class="rc-body">
+            <h3>{{ item.title }}</h3>
+            <div class="rc-meta">
+              {{ item.type }} · {{ item.status }}<br>
+              {{ item.date }}
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card card-pad text-center">
+      <b>По вашему запросу ничего не найдено</b>
+      <p class="muted small mt-1">Попробуйте другое написание названия или поиск по ID с главной страницы.</p>
+    </div>
+  {% endif %}
+
+  {% if others %}
+    <div class="section-title">Прочее (Кинопоиск)</div>
+    <ul class="plain-list">
+      {% for item in others %}
+        <li>
+          <a href="/download/kp/{{ item.id }}/">
+            <b>{{ item.title }}</b>
+            <div class="pl-meta">{{ item.type }} · {{ item.date }}</div>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endblock %}

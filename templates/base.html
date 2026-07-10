@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="{{ 'dark' if is_dark else 'light' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}KDW{% endblock %}</title>
+  <link rel="icon" href="/favicon.ico">
+  <script>
+    // Тема из localStorage до отрисовки — без «вспышки»
+    (function () {
+      try {
+        var t = localStorage.getItem('kdw-theme');
+        if (t) document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <div class="wrap {% block wrap_class %}{% endblock %}">
+    <header class="site-head">
+      <a class="brand" href="/">
+        <span class="brand-mark">К</span>
+        <span>KDW</span>
+      </a>
+      {% block crumb %}{% endblock %}
+      <div class="head-spacer"></div>
+      {% block head_actions %}{% endblock %}
+      <button class="btn btn-icon" id="themeToggle" title="Сменить тему" aria-label="Сменить тему">◐</button>
+    </header>
+
+    {% block content %}{% endblock %}
+  </div>
+
+  <script>
+    (function () {
+      var html = document.documentElement;
+      document.getElementById('themeToggle').addEventListener('click', function () {
+        var next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        try { localStorage.setItem('kdw-theme', next); } catch (e) {}
+        // Синхронизируем с сессией на сервере, чтобы первая отрисовка совпадала
+        fetch('/api/theme/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ theme: next })
+        }).catch(function () {});
+      });
+    })();
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

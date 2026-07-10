@@ -1,0 +1,7 @@
+/venv/
+*/__pycache__/
+cache.json
+.vscode
+test.*
+tmp/*
+__pycache__/batch_tmp/*

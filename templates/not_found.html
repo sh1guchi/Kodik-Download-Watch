@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Ничего не найдено{% endblock %}
+{% block wrap_class %}wrap-narrow{% endblock %}
+
+{% block content %}
+  <div class="card card-pad text-center" style="margin-top:10vh;">
+    <h1>По данному запросу нет данных</h1>
+    <p class="muted">Проверьте правильность ID или попробуйте найти тайтл через поиск.</p>
+    {% if details %}
+      <p class="small mono muted">{{ details }}</p>
+    {% endif %}
+    <a class="btn btn-primary mt-2" href="/">На главную</a>
+  </div>
+{% endblock %}

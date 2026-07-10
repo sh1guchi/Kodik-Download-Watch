@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+{% block title %}Пакетная загрузка — {{ title }}{% endblock %}
+{% block wrap_class %}wrap-narrow{% endblock %}
+{% block crumb %}<span class="crumb">Пакетная загрузка</span>{% endblock %}
+{% block head_actions %}
+  <a class="btn" href="{{ backlink }}">← К сериям</a>
+{% endblock %}
+
+{% block content %}
+  <div class="card"
+       id="batchRoot"
+       data-serv="{{ serv }}" data-id="{{ id }}"
+       data-translation-id="{{ translation_id }}"
+       data-translation-name="{{ translation_name }}"
+       data-title="{{ title }}" data-min="{{ min_series }}" data-max="{{ max_series }}">
+
+    <div class="card-pad" style="border-bottom:1px solid var(--border);">
+      <div class="section-title" style="margin:0 0 8px;">Пакетная загрузка</div>
+      <h1>{{ title }}</h1>
+      <div class="chips mt-1">
+        <span class="chip chip-accent">Озвучка: <b>{{ translation_name }}</b></span>
+        <span class="chip">Доступно серий: <b class="mono">{{ min_series }}–{{ max_series }}</b></span>
+      </div>
+    </div>
+
+    <div class="card-pad">
+      <div class="field mb-2">
+        <label>Качество <span class="sub">— максимум у Kodik 720p; если серия не скачалась, попробуйте ниже</span></label>
+        <div class="seg">
+          <input type="radio" name="q" id="q360" value="360"><label for="q360">360p<span class="q-sub">эконом</span></label>
+          <input type="radio" name="q" id="q480" value="480"><label for="q480">480p<span class="q-sub">SD</span></label>
+          <input type="radio" name="q" id="q720" value="720" checked><label for="q720">720p<span class="q-sub">HD</span></label>
+        </div>
+      </div>
+
+      <div class="field mb-2">
+        <label>Диапазон серий</label>
+        <div class="range-row">
+          <div class="num">
+            <span>С серии</span>
+            <input class="input mono" type="number" id="from" min="{{ min_series }}" max="{{ max_series }}" value="{{ min_series }}">
+          </div>
+          <div class="arrow">→</div>
+          <div class="num">
+            <span>По серию</span>
+            <input class="input mono" type="number" id="to" min="{{ min_series }}" max="{{ max_series }}" value="{{ max_series }}">
+          </div>
+          <div class="range-count">
+            <b class="mono" id="count">0</b>
+            <small>серий</small>
+          </div>
+        </div>
+        <div class="presets" id="presets">
+          <button type="button" data-from="{{ min_series }}" data-to="{{ max_series }}">Все</button>
+          <button type="button" data-from="1" data-to="12">1–12</button>
+          <button type="button" data-from="13" data-to="24">13–24</button>
+          <button type="button" data-from="1" data-to="24">1–24</button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-lg" id="start" style="width:100%;">Скачать серии</button>
+      <div class="banner b-err" id="error"></div>
+
+      <div id="progress" style="display:none;" class="mt-3">
+        <div class="bar"><i id="barFill"></i></div>
+        <div class="player-bar mt-1">
+          <span class="muted" id="phase"><span class="spinner"></span> Готовим…</span>
+          <div class="pb-spacer"></div>
+          <span class="mono"><b id="doneN">0</b> / <span id="totalN">0</span></span>
+        </div>
+        <div class="strip" id="strip"></div>
+        <div class="banner b-ok" id="okBanner"></div>
+        <div class="banner b-warn" id="warnBanner"></div>
+        <div class="player-bar mt-2">
+          <a class="btn btn-primary btn-lg" id="download" style="flex:1;display:none;">Скачать ZIP</a>
+          <button class="btn btn-danger" id="cancel" style="flex:1;">Отменить</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="muted small text-center mt-2">
+    Серии скачиваются последовательно без перекодирования (ffmpeg copy) и упаковываются в один ZIP-архив.
+    Не закрывайте страницу до конца загрузки архива.
+  </p>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const root = $('batchRoot');
+  const MIN = parseInt(root.dataset.min, 10) || 1;
+  const MAX = parseInt(root.dataset.max, 10) || 1;
+
+  const fromEl = $('from'), toEl = $('to'), countEl = $('count');
+  function clamp(v) { v = parseInt(v, 10); if (isNaN(v)) v = MIN; return Math.min(Math.max(v, MIN), MAX); }
+  function refresh() {
+    let a = clamp(fromEl.value), b = clamp(toEl.value);
+    if (a > b) b = a;
+    fromEl.value = a; toEl.value = b;
+    countEl.textContent = (b - a + 1);
+  }
+  fromEl.addEventListener('input', refresh);
+  toEl.addEventListener('input', refresh);
+  refresh();
+
+  document.querySelectorAll('#presets button').forEach((btn) => {
+    const f = parseInt(btn.dataset.from, 10), t = parseInt(btn.dataset.to, 10);
+    if (f > MAX || f < MIN) { btn.disabled = true; }
+    btn.addEventListener('click', () => {
+      fromEl.value = Math.max(f, MIN);
+      toEl.value = Math.min(t, MAX);
+      refresh();
+    });
+  });
+
+  const startBtn = $('start'), errBox = $('error');
+  const progress = $('progress'), strip = $('strip'), barFill = $('barFill');
+  const phaseEl = $('phase'), doneN = $('doneN'), totalN = $('totalN');
+  const dlBtn = $('download'), cancelBtn = $('cancel');
+  const okBanner = $('okBanner'), warnBanner = $('warnBanner');
+  let jobId = null, poll = null;
+
+  const PHASES = {
+    queued: 'В очереди…', running: 'Скачиваем серии…', downloading: 'Скачиваем серии…',
+    zipping: 'Упаковываем в ZIP…', done: 'Готово', error: 'Ошибка', cancelled: 'Отменено',
+  };
+  const SPIN = '<span class="spinner"></span> ';
+
+  function showErr(msg) { errBox.textContent = msg; errBox.classList.add('show'); }
+  function hideErr() { errBox.classList.remove('show'); }
+
+  function buildStrip(a, b) {
+    strip.innerHTML = '';
+    for (let n = a; n <= b; n++) {
+      const c = document.createElement('div');
+      c.className = 'cell mono'; c.id = 'cell-' + n;
+      c.textContent = n;
+      strip.appendChild(c);
+    }
+  }
+
+  startBtn.addEventListener('click', async () => {
+    hideErr();
+    refresh();
+    const a = clamp(fromEl.value), b = clamp(toEl.value);
+    const quality = document.querySelector('input[name="q"]:checked').value;
+
+    startBtn.disabled = true;
+    startBtn.textContent = 'Запускаем…';
+
+    try {
+      const r = await fetch('/batch/start/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serv: root.dataset.serv, id: root.dataset.id,
+          translation_id: root.dataset.translationId,
+          translation_name: root.dataset.translationName,
+          title: root.dataset.title,
+          quality: quality, start: a, end: b,
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'Не удалось запустить загрузку');
+
+      jobId = data.job_id;
+      buildStrip(a, b);
+      totalN.textContent = (b - a + 1);
+      doneN.textContent = '0';
+      barFill.style.width = '0%';
+      okBanner.classList.remove('show');
+      warnBanner.classList.remove('show');
+      dlBtn.style.display = 'none';
+      cancelBtn.style.display = '';
+      cancelBtn.disabled = false;
+      progress.style.display = '';
+      progress.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      poll = setInterval(tick, 1200);
+      tick();
+    } catch (e) {
+      showErr(e.message);
+      startBtn.disabled = false;
+      startBtn.textContent = 'Скачать серии';
+    }
+  });
+
+  async function tick() {
+    if (!jobId) return;
+    let st;
+    try {
+      const r = await fetch('/batch/status/' + jobId + '/');
+      st = await r.json();
+      if (!r.ok) throw new Error(st.error || 'Задача не найдена');
+    } catch (e) {
+      clearInterval(poll);
+      showErr(e.message);
+      startBtn.disabled = false;
+      startBtn.textContent = 'Скачать серии';
+      return;
+    }
+
+    const running = (st.status === 'running' || st.status === 'queued');
+    phaseEl.innerHTML = (running ? SPIN : '') + (PHASES[st.phase] || st.phase);
+    doneN.textContent = st.done;
+    totalN.textContent = st.total;
+    const pct = st.total ? Math.round(((st.done + st.failed) / st.total) * 100) : 0;
+    barFill.style.width = pct + '%';
+
+    st.episodes.forEach((ep) => {
+      const c = $('cell-' + ep.num);
+      if (!c) return;
+      c.classList.remove('done', 'failed', 'active');
+      if (ep.status === 'done') c.classList.add('done');
+      else if (ep.status === 'failed') { c.classList.add('failed'); c.title = ep.error || 'Ошибка'; }
+      else if (ep.status === 'downloading') c.classList.add('active');
+    });
+
+    if (st.status === 'done') {
+      clearInterval(poll);
+      cancelBtn.style.display = 'none';
+      dlBtn.href = '/batch/download/' + jobId + '/';
+      dlBtn.style.display = '';
+      startBtn.disabled = false;
+      startBtn.textContent = 'Скачать ещё';
+      okBanner.textContent = 'Готово: ' + st.done + ' из ' + st.total + ' серий. Архив «' + (st.zip_name || 'archive.zip') + '» готов.';
+      okBanner.classList.add('show');
+      if (st.failed > 0) {
+        warnBanner.textContent = 'Не удалось скачать серий: ' + st.failed + '. Наведите курсор на красные ячейки, чтобы увидеть причину. Часто помогает выбор более низкого качества.';
+        warnBanner.classList.add('show');
+      }
+    } else if (st.status === 'error') {
+      clearInterval(poll);
+      cancelBtn.style.display = 'none';
+      showErr(st.error || 'Произошла ошибка');
+      startBtn.disabled = false;
+      startBtn.textContent = 'Попробовать снова';
+    } else if (st.status === 'cancelled') {
+      clearInterval(poll);
+      cancelBtn.style.display = 'none';
+      phaseEl.textContent = 'Отменено';
+      startBtn.disabled = false;
+      startBtn.textContent = 'Скачать серии';
+    }
+  }
+
+  cancelBtn.addEventListener('click', async () => {
+    if (!jobId) return;
+    cancelBtn.disabled = true;
+    cancelBtn.textContent = 'Отмена…';
+    try { await fetch('/batch/cancel/' + jobId + '/', { method: 'POST' }); } catch (e) {}
+    setTimeout(() => { cancelBtn.textContent = 'Отменить'; }, 1500);
+  });
+})();
+</script>
+{% endblock %}

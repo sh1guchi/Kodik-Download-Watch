@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Быстрая загрузка — серия {{ seria_num }}{% endblock %}
+{% block wrap_class %}wrap-narrow{% endblock %}
+
+{% block content %}
+  <div class="card card-pad text-center" style="margin-top:8vh;">
+    <div class="spinner" style="width:34px;height:34px;border-width:4px;margin-bottom:14px;"></div>
+    <h1>Готовим видео</h1>
+    <p class="muted">Серия {{ seria_num }} собирается на сервере — скачивание начнётся автоматически.</p>
+    <p class="muted small">Обычно это 20–30 секунд для 25-минутной серии и 2–3 минуты для полнометражного фильма.
+      Если браузер покажет ошибку тайм-аута, подождите минуту и обновите страницу.</p>
+    <button class="btn mt-2" onclick="window.location.replace(past_url)">Вернуться назад (после завершения загрузки)</button>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    var past_url = "{{ past_url }}";
+    window.location.replace('{{ url }}');
+  </script>
+{% endblock %}

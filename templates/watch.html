@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}{% if title %}{{ title }} — {% endif %}Серия {{ seria }}{% endblock %}
+{% block crumb %}<span class="crumb">{% if title %}{{ title }}{% else %}Просмотр{% endif %}</span>{% endblock %}
+{% block head_actions %}
+  <a class="btn" href="/download/{{ serv }}/{{ id }}/">К тайтлу</a>
+{% endblock %}
+
+{% block content %}
+  <h1>Серия {{ seria }}{% if series[1] != 0 %} <span class="muted">/ {{ series[1] }}</span>{% endif %}</h1>
+
+  <div class="player-shell mt-1">
+    <video controls autoplay>
+      <source src="{{ straight_url }}" type="video/mp4">
+    </video>
+  </div>
+
+  <div class="player-bar">
+    {% if seria > series[0] %}
+      <a id="previous_seria_a" class="btn" href="/watch/{{ serv }}/{{ id }}/{{ data }}/{{ seria-1 }}/{{ quality }}/">← Предыдущая</a>
+    {% endif %}
+    {% if seria < series[1] %}
+      <a id="next_seria_a" class="btn btn-primary" href="/watch/{{ serv }}/{{ id }}/{{ data }}/{{ seria+1 }}/{{ quality }}/">Следующая →</a>
+    {% endif %}
+    <div class="pb-spacer"></div>
+    <button class="btn" onclick="skip_left();">−1:20</button>
+    <button class="btn" onclick="skip_right();">+1:20</button>
+  </div>
+
+  <div class="player-bar">
+    <span class="chip">Качество: <b>{{ quality }}p</b></span>
+    <span class="q-links">
+      <a href="q-720/">720</a><a href="q-480/">480</a><a href="q-360/">360</a>
+    </span>
+    <div class="pb-spacer"></div>
+    {% if series[1] != 0 %}
+      <form method="POST" novalidate style="display:flex;gap:8px;align-items:center;">
+        <input class="input mono" name="seria" placeholder="№" required autocomplete="off"
+               inputmode="numeric" style="width:86px;padding:8px 10px;">
+        <button type="submit" class="btn">Перейти</button>
+      </form>
+    {% endif %}
+  </div>
+
+  <div class="player-bar">
+    {% if allow_watch_together %}
+      <form action="/create_room/" method="POST" novalidate>
+        <button type="submit" class="btn">Смотреть вместе</button>
+      </form>
+    {% endif %}
+    <button id="create_qr_btn" class="btn">Ссылка с таймингом</button>
+    <div class="pb-spacer"></div>
+    <a class="btn" href="{{ url }}/">Скачать серию</a>
+    <a class="btn btn-ghost" href="{{ straight_url }}" target="_blank" rel="noopener">Прямая ссылка ↗</a>
+  </div>
+
+  <div id="timing_link_div" style="display:none;" class="mt-2">
+    <input id="link_container" class="input mono" readonly onclick="this.select()">
+    <div class="qr-box show mt-2" id="qr_code_container"><div id="qr_code"></div></div>
+  </div>
+
+  <p class="hotkeys">
+    Горячие клавиши: <kbd>F</kbd> полный экран · <kbd>M</kbd> звук · <kbd>A</kbd>/<kbd>D</kbd> перемотка 1:20 · <kbd>J</kbd>/<kbd>L</kbd> серия назад/вперёд
+  </p>
+  <p class="muted small">Если плеер не загрузился или файл не скачивается — попробуйте сменить качество.</p>
+
+  <div style="display:none" id="data-holder">{
+    "cur_ser": {{ seria }},
+    "min_ser": {{ series[0] }},
+    "max_ser": {{ series[1] }},
+    "cur_quality": "{{ quality }}",
+    "timing": {{ timing }},
+    "serv": "{{ serv }}",
+    "id": "{{ id }}",
+    "data": "{{ data }}",
+    "seria": "{{ seria }}"
+  }</div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    const video = document.querySelector("video");
+    const page_data = JSON.parse(document.getElementById('data-holder').innerText);
+    const timing_link_div = document.getElementById('timing_link_div');
+    const create_qr_btn = document.getElementById('create_qr_btn');
+    let qrCode;
+
+    video.focus();
+    if (page_data.timing > 0) video.currentTime = page_data.timing;
+
+    function skip_left()  { video.currentTime = Math.max(video.currentTime - 80, 0); }
+    function skip_right() { video.currentTime = Math.min(video.currentTime + 80, video.duration || 1e9); }
+
+    document.addEventListener('keydown', function (event) {
+      if (event.target.tagName === 'INPUT') return; // не перехватываем ввод в поля
+      const k = event.key;
+      if (k === 'f' || k === 'а') {
+        if (document.fullscreenElement) document.exitFullscreen();
+        else if (video.requestFullscreen) video.requestFullscreen();
+        else if (video.webkitRequestFullScreen) video.webkitRequestFullScreen();
+      } else if (k === 'm' || k === 'ь') {
+        video.muted = !video.muted;
+      } else if (k === 'd' || k === 'в') {
+        skip_right();
+      } else if (k === 'a' || k === 'ф') {
+        skip_left();
+      } else if (k === 'l' || k === 'д') {
+        const a = document.getElementById('next_seria_a');
+        if (a && page_data.cur_ser < page_data.max_ser) document.location.replace(a.href);
+      } else if (k === 'j' || k === 'о') {
+        const a = document.getElementById('previous_seria_a');
+        if (a && page_data.cur_ser > page_data.min_ser) document.location.replace(a.href);
+      }
+    });
+
+    create_qr_btn.addEventListener('click', function () {
+      const cur = Math.trunc(video.currentTime);
+      const port = document.location.port ? ':' + document.location.port : '';
+      const loc = document.location.protocol + '//' + document.location.hostname + port +
+        '/watch/' + page_data.serv + '/' + page_data.id + '/' + page_data.data + '/' +
+        page_data.seria + '/' + page_data.cur_quality + '/' + cur + '/';
+      if (qrCode == null) {
+        qrCode = new QRCode('qr_code', { text: loc, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.H });
+      } else {
+        qrCode.makeCode(loc);
+      }
+      timing_link_div.style.display = '';
+      document.getElementById('link_container').value = loc;
+    });
+  </script>
+{% endblock %}

@@ -1,64 +1,63 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Скачать</title>
-    <!-- Стили Bootstrap 5 -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
-  </head>
-  <body {% if is_dark %}class="dark-body"{% endif %}>
-    <!-- Контент -->
-    <table>
-      <tr>
-        <td><a href='/'><button class="btn {% if is_dark %}dark-{% endif %}btn-primary">На главную</button></a></td>
-        <td><form method="POST" action="/change_theme/" novalidate>
-            <button type="submit" class="btn {% if is_dark %}dark-{% endif %}btn-primary mb-3" style="position:absolute;top:1px">Сменить тему</button>
-        </form></td>
-      </tr>
-    </table>
-    <div class="container mt-5">
-      <h1 class="mb-4">Скачивание:</h1>
-      <p>Если у вас не получается скачать, попробуйте выбрать другое качество.</p>
-      {% if series != 0 %}
-        <table>
-          <thead>
+{% extends "base.html" %}
+{% block title %}Скачивание серий{% endblock %}
+{% block crumb %}<span class="crumb">Скачивание</span>{% endblock %}
+{% block head_actions %}
+  <a class="btn" href="{{ backlink }}">← К тайтлу</a>
+{% endblock %}
+
+{% block content %}
+  <h1>Скачивание</h1>
+  <p class="muted small">Если серия не скачивается — попробуйте другое качество. Быстрая загрузка собирает файл на сервере (нужен ffmpeg), стандартная отдаёт файл напрямую с Kodik.</p>
+
+  {% if series[1] != 0 %}
+    <a class="batch-banner mt-2" href="/batch/{{ serv }}/{{ id }}/{{ data }}/" style="text-decoration:none;color:inherit;">
+      <div class="bb-text">
+        <b>Пакетная загрузка</b>
+        <p>Скачать сразу несколько серий одним ZIP-архивом — с выбором диапазона и качества.</p>
+      </div>
+      <span class="btn btn-primary">Открыть →</span>
+    </a>
+
+    <div class="card mt-3" style="overflow-x:auto;">
+      <table class="episodes-table">
+        <thead>
+          <tr>
+            <th>Серия</th>
+            <th>Быстрая загрузка</th>
+            <th>Стандартная</th>
+            <th>Онлайн</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ep in range(series[0], series[1]+1) %}
             <tr>
-              <th style="text-align: center; vertical-align: middle;" width=50px>№</th><th style="text-align: center; vertical-align: middle;" width=150px>Быстрая загрузка</th><th style="text-align: center; vertical-align: middle;" width=150px>Стандартная загрузка</th><th style="text-align: center; vertical-align: middle;">Смотреть онлайн</th>
+              <td class="ep-num mono">{{ ep }}</td>
+              <td>
+                <span class="q-links">
+                  <a href="fast-720-{{ ep }}/">720</a><a href="fast-480-{{ ep }}/">480</a><a href="fast-360-{{ ep }}/">360</a>
+                </span>
+              </td>
+              <td>
+                <span class="q-links">
+                  <a href="old-720-{{ ep }}/">720</a><a href="old-480-{{ ep }}/">480</a><a href="old-360-{{ ep }}/">360</a>
+                </span>
+              </td>
+              <td><a href="watch-{{ ep }}/">Смотреть</a></td>
             </tr>
-          </thead>
-          <tbody>
-            {% for url in range(series[0], series[1]+1) %}
-              <tr>
-                <td align="center">
-                  <font size=4>{{ url }}</font>
-                </td>
-                <td align="center">
-                  <font size=4>
-                    <a href="fast-720-{{ url }}/"{% if is_dark %} class="dark-href"{% endif %}>720</a> | <a href="fast-480-{{ url }}/"{% if is_dark %} class="dark-href"{% endif %}>480</a> | <a href="fast-360-{{ url }}/"{% if is_dark %} class="dark-href"{% endif %}>360</a>
-                  </font>
-                </td>
-                <td align="center">
-                  <font size=4>
-                    <a href="old-720-{{ url }}/"{% if is_dark %} class="dark-href"{% endif %}>720</a> | <a href="old-480-{{ url }}/"{% if is_dark %} class="dark-href"{% endif %}>480</a> | <a href="old-360-{{ url }}/"{% if is_dark %} class="dark-href"{% endif %}>360</a>
-                  </font>
-                </td>
-                <td align="center">
-                  <font size=4><a href='watch-{{ url }}/'{% if is_dark %} class="dark-href"{% endif %}>Смотреть онлайн</a></font>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      {% else %}
-        <p>Быстрая загрузка: <a href="fast-720-0/"{% if is_dark %} class="dark-href"{% endif %}>720</a> | <a href="fast-480-0/"{% if is_dark %} class="dark-href"{% endif %}>480</a> | <a href="fast-360-0/"{% if is_dark %} class="dark-href"{% endif %}>360</a></p>
-        <p>Стандартная загрузка: <a href="old-720-0/"{% if is_dark %} class="dark-href"{% endif %}>720</a> | <a href="old-480-0/"{% if is_dark %} class="dark-href"{% endif %}>480</a> | <a href="old-360-0/"{% if is_dark %} class="dark-href"{% endif %}>360</a></p>
-        <a href='watch-0/'{% if is_dark %} class="dark-href"{% endif %}>Смотреть онлайн</a>
-      {% endif %}
-      <br>
-      <a href='{{ backlink }}'><button class="btn {% if is_dark %}dark-{% endif %}btn-primary">Вернуться назад</button></a>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
-    <!-- Скрипты Bootstrap 5 -->
-    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
-  </body>
-</html>
+  {% else %}
+    <div class="card card-pad mt-2">
+      <h2 class="mt-0">Фильм</h2>
+      <p class="mb-1"><b>Быстрая загрузка:</b>
+        <span class="q-links"><a href="fast-720-0/">720</a><a href="fast-480-0/">480</a><a href="fast-360-0/">360</a></span>
+      </p>
+      <p class="mb-1"><b>Стандартная загрузка:</b>
+        <span class="q-links"><a href="old-720-0/">720</a><a href="old-480-0/">480</a><a href="old-360-0/">360</a></span>
+      </p>
+      <a class="btn btn-primary mt-1" href="watch-0/">Смотреть онлайн</a>
+    </div>
+  {% endif %}
+{% endblock %}

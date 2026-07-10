@@ -1,118 +1,70 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }}</title>
-    <!-- Стили Bootstrap 5 -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
-  </head>
-  <body {% if is_dark %}class="dark-body"{% endif %}>
-    <!-- Контент -->
-    <table>
-      <tr>
-        <td><a href='/'><button class="btn {% if is_dark %}dark-{% endif %}btn-primary">На главную</button></a></td>
-        <td><form method="POST" action="/change_theme/" novalidate>
-            <button type="submit" class="btn {% if is_dark %}dark-{% endif %}btn-primary mb-3" style="position:absolute;top:1px">Сменить тему</button>
-        </form></td>
-      </tr>
-    </table>
-    <div class="container mt-5">
-      <h1 class="mb-4">{{ title }}</h1>
-      {% if is_mobile %}
-        <img src="{{ image }}" height=500px style="padding-bottom: 10px;">
-        <br>
-        <div><font size="4">
-          Тип: {{ dtype }}<br>
-          Статус: {{ status }}<br>
-          Даты выхода: {{ date }}<br>
-          Оценка шикимори: {{ score }}<br>
-          Рейтинг: {{ rating }}<br>
-          {% if is_shiki %}
-            <a class="{% if is_dark %}dark-{% endif %}black-href" href="https://{{ shiki_mirror }}/animes/{{ id }}">Ссылка шикимори</a><br>
-          {% endif %}
-          <br>
-          <details><summary>Описание</summary>
-                  <font size="4">{{ description }}</font>
-                </details>
-        </font></div>
-      {% else %}
-        <table style="padding-bottom: 10px;">
-          <tr>
-            <td>
-              <img src="{{ image }}" height=500px>
-            </td>
-            <td style="vertical-align: top;">
-              <div style="padding-left: 30px;"><font size="5">
-              Тип: {{ dtype }}<br>
-              Статус: {{ status }}<br>
-              Даты выхода: {{ date }}<br>
-              Оценка шикимори: {{ score }}<br>
-              Рейтинг: {{ rating }}<br>
-              {% if is_shiki %}
-              <a class="{% if is_dark %}dark-{% endif %}black-href" href="https://{{ shiki_mirror }}/animes/{{ id }}">Ссылка шикимори</a><br>
-            {% endif %}
-              <br>
-              <details><summary>Описание</summary>
-                  <font size="4">{{ description }}</font>
-                </details>
-              </font></div>
-            </td>
-          </tr>
-        </table>
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block crumb %}<span class="crumb">Тайтл</span>{% endblock %}
+
+{% block content %}
+  <div class="title-hero">
+    <img class="poster" src="{{ image }}" alt="Постер: {{ title }}">
+    <div class="th-body">
+      <h1>{{ title }}</h1>
+      <div class="chips mt-1">
+        <span class="chip">Тип: <b>{{ dtype }}</b></span>
+        <span class="chip">Статус: <b>{{ status }}</b></span>
+        {% if score and score != 'Неизвестно' %}<span class="chip chip-accent">★ {{ score }}</span>{% endif %}
+        {% if rating %}<span class="chip">{{ rating }}</span>{% endif %}
+      </div>
+      <p class="muted small mt-2">Даты выхода: {{ date }}</p>
+      {% if is_shiki %}
+        <p class="small"><a href="https://{{ shiki_mirror }}/animes/{{ id }}" target="_blank" rel="noopener">Открыть на Шикимори ↗</a></p>
       {% endif %}
-      {% if related|length > 0 %}
-        <hr>
-        <h3 class="mb-3">Связанное</h3>
-        <div style="overflow: auto;">
-        <table><tr>
-        {% for item in related %}
-          <td style="width: 20vw; min-width: 320px;">
-            <a class="{% if is_dark %}dark-{% endif %}black-href" href="{{ item['internal_link'] }}">
-            <table>
-              <td><img src="{{ item['picture'] }}" height="200px"></td>
-              <td style="vertical-align: top;">
-                <p style="padding-left: 15px;"><font size="3">
-                  Тип: {{ item['type'] }}<br>
-                  Даты выхода: {{ item['date'] }}<br>
-                  Связь: {{ item['relation'] }}
-                  </font></p>
-              </td>
-            </table>
-            <h3 class="mb-3" style="word-wrap: normal;">{{ item['name'] }}</h3>
-            </a>
-          </td>
-        {% endfor %}
-        </tr></table></div>
+      {% if description and description not in ('', 'Неизвестно', '...') %}
+        <details class="desc">
+          <summary>Описание</summary>
+          <p>{{ description }}</p>
+        </details>
       {% endif %}
-      <hr>
-      <h5>Выберите перевод: (Всего {{ translations|length }})</h5>
-      <table>
-      {% for translation in translations %}
-      <tr>
-        <td width=100px>
-          <font size="4">{{ translation.type }}</font>
-        </td>
-        <td width=300px>
-          {% if translation.series_range[1] != 0 %}
-            <font size="4"><a href="{{translation.series_range[0]}}:{{ translation.series_range[1] }}-{{ translation.id }}/" {% if is_dark %} class="dark-href"{% endif %}>{{ translation.name }}</a></font>
-          {% else %}
-            <font size="4"><a href="1:{{ series_count }}-{{ translation.id }}/" {% if is_dark %} class="dark-href"{% endif %}>{{ translation.name }}</a></font>
-          {% endif %}
-        </td>
-        <td>
-          {% if translation.series_range[1] != 0 %}
-            <font size="4"><a href="{{translation.series_range[0]}}:{{ translation.series_range[1] }}-{{ translation.id }}/watch-{% if series_count == 0 %}0{% else %}{{ translation.series_range[0] }}{% endif %}/" {% if is_dark %} class="dark-href"{% endif %}>Смотреть онлайн</a></font>
-          {% else %}
-            <font size="4"><a href="1:{{ series_count }}-{{ translation.id }}/watch-{% if series_count == 0 %}0{% else %}1{% endif %}/" {% if is_dark %} class="dark-href"{% endif %}>Смотреть онлайн</a></font>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-      </table>
-      <br><br><br>
     </div>
-    <!-- Скрипты Bootstrap 5 -->
-    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
-  </body>
-</html>
+  </div>
+
+  {% if related|length > 0 %}
+    <div class="section-title">Связанное</div>
+    <div class="related-strip">
+      {% for item in related %}
+        <a class="related-card" href="{{ item['internal_link'] }}">
+          <img src="{{ item['picture'] }}" alt="" loading="lazy">
+          <div class="rl-name">{{ item['name'] }}</div>
+          <div class="rl-meta">{{ item['relation'] }} · {{ item['type'] }}<br>{{ item['date'] }}</div>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="section-title">Озвучки и субтитры — {{ translations|length }}</div>
+  <div class="translation-table">
+    {% for translation in translations %}
+      {% if translation.series_range[1] != 0 %}
+        {% set tdata = translation.series_range[0] ~ ':' ~ translation.series_range[1] ~ '-' ~ translation.id %}
+        {% set first_seria = translation.series_range[0] %}
+        {% set eps_label = translation.series_range[0] ~ '–' ~ translation.series_range[1] %}
+      {% else %}
+        {% set tdata = '1:' ~ series_count ~ '-' ~ translation.id %}
+        {% set first_seria = 0 if series_count == 0 else 1 %}
+        {% set eps_label = ('1–' ~ series_count) if series_count != 0 else 'фильм' %}
+      {% endif %}
+      <div class="translation-row">
+        <span class="tr-type {{ 'voice' if translation.type == 'voice' else 'subs' }}">
+          {{ 'Озвучка' if translation.type == 'voice' else 'Субтитры' }}
+        </span>
+        <span class="tr-name">{{ translation.name }}</span>
+        <span class="tr-eps mono">{{ eps_label }}</span>
+        <span class="tr-actions">
+          <a class="btn btn-sm" href="{{ tdata }}/">Серии</a>
+          <a class="btn btn-sm" href="{{ tdata }}/watch-{{ first_seria }}/">Смотреть</a>
+          {% if series_count != 0 or translation.series_range[1] > 1 %}
+            <a class="btn btn-sm btn-primary" href="/batch/{{ 'sh' if is_shiki else 'kp' }}/{{ id }}/{{ tdata }}/">Пакетно</a>
+          {% endif %}
+        </span>
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}

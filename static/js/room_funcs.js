@@ -76,7 +76,7 @@ create_qr_btn.addEventListener("click", function (event) {
     } else {
         qrCode.makeCode(hrf);
     }
-    document.getElementById("qr_code_container").style = "background-color: white; height: 300px; width: 300px; display: flex; align-items: center;justify-content: center;"
+    document.getElementById("qr_code_container").classList.add('show');
 });
 
 function skip_left() {

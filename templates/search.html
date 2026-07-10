@@ -1,85 +1,49 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Поиск</title>
-    <!-- Стили Bootstrap 5 -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
-  </head>
-  <body {% if is_dark %}class="dark-body"{% endif %}>
-    <!-- Контент -->
-    <table>
-      <tr>
-        <td><a href='/'><button class="btn {% if is_dark %}dark-{% endif %}btn-primary">На главную</button></a></td>
-        <td><form method="POST" action="/change_theme/" novalidate>
-            <button type="submit" class="btn {% if is_dark %}dark-{% endif %}btn-primary mb-3" style="position:absolute;top:1px">Сменить тему</button>
-        </form></td>
-      </tr>
-    </table>
-    <div class="container mt-5">
-      {% if is_kodik_search %}
-        <h1 class="text-center mb-4">Поиск по Kodik</h1>
-      {% else %}
-        <h1 class="text-center mb-4">Поиск по Шикимори</h1>
-      {% endif %}
-      <form method="POST" novalidate action="/">
-        <div class="mb-3">
-          <label for="original-url" class="form-label">Введите название</label>
-          <input class="{% if is_dark %}dark-{% endif %}form-control" id="original-url" name="kdk" required autocomplete=off>
-        </div>
-        <button type="submit" class="btn {% if is_dark %}dark-{% endif %}btn-primary mb-3">Поиск</button>
-      </form>
+{% extends "base.html" %}
+{% block title %}Результаты поиска{% endblock %}
+{% block crumb %}<span class="crumb">Поиск</span>{% endblock %}
+
+{% block content %}
+  <form method="POST" novalidate action="/">
+    <div class="search-row">
+      <input class="input" name="kdk" placeholder="Название тайтла…" required autocomplete="off">
+      <button type="submit" class="btn btn-primary">Найти</button>
     </div>
-    <div class="container mt-5">
-    <h1 class="mb-4">Аниме:</h1><hr>
-    <table width=100%>
-      <tr width=100%>
-        {% for item in items %}
-        <th width="{{ 100/ 1 if is_mobile else 3 }}%">
-          <div class="mb-3">
-            <a href="/download/sh/{{ item.id }}/" class="{% if is_dark %}dark-{% endif %}black-href">
-            <table width=100%>
-              <td>
-                <th width=30%>
-                  <img src='{{ item.image }}' height=200px width=150px>
-                </th>
-              </td>
-              <td>
-                <th width=70%>
-                  <h5>{{ item.title }}</h5>
-                  <p>Тип: {{ item.type }}<br>Даты:<br>{{ item.date }}<br>Статус: {{ item.status }}</p>
-                </th>
-              </td>
-            </table>
-            </a>
+  </form>
+
+  <div class="section-title">Аниме</div>
+  {% if items %}
+    <div class="results-grid">
+      {% for item in items %}
+        <a class="result-card" href="/download/sh/{{ item.id }}/">
+          <img src="{{ item.image }}" alt="" loading="lazy">
+          <div class="rc-body">
+            <h3>{{ item.title }}</h3>
+            <div class="rc-meta">
+              {{ item.type }} · {{ item.status }}<br>
+              {{ item.date }}
+            </div>
           </div>
-        </th>
-          {% if loop.index % (1 if is_mobile else 3) == 0 %}
-            </tr><tr width=100%>
-          {% endif %}
-        {% else %}
-          <div class="mb-3">
-            <th><h5>По вашему запросу ничего не найдено</h5></th>
-          </div>
-        {% endfor %}
-      </tr>
-    </table>
-    {% if others %}
-      <hr><h1 class="mb-4">Прочее:</h1><hr>
-      <ul>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card card-pad text-center">
+      <b>По вашему запросу ничего не найдено</b>
+      <p class="muted small mt-1">Попробуйте другое написание названия или поиск по ID с главной страницы.</p>
+    </div>
+  {% endif %}
+
+  {% if others %}
+    <div class="section-title">Прочее (Кинопоиск)</div>
+    <ul class="plain-list">
       {% for item in others %}
         <li>
-          <a href="/download/kp/{{ item.id }}/" class="{% if is_dark %}dark-{% endif %}black-href">
-          {{ item.type }}: {{ item.title }}<br>
-          {{ item.date }}
+          <a href="/download/kp/{{ item.id }}/">
+            <b>{{ item.title }}</b>
+            <div class="pl-meta">{{ item.type }} · {{ item.date }}</div>
           </a>
         </li>
       {% endfor %}
-      </ul>
-    {% endif %}
-    </div>
-    <!-- Скрипты Bootstrap 5 -->
-    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
-  </body>
-</html>
+    </ul>
+  {% endif %}
+{% endblock %}

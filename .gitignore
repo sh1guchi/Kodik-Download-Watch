@@ -4,4 +4,4 @@ cache.json
 .vscode
 test.*
 tmp/*
-__pycache__/
+__pycache__/batch_tmp/*
